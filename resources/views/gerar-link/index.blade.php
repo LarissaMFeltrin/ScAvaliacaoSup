@@ -120,19 +120,26 @@
                     </label>
                     <div class="relative">
                         <input type="text" 
-                               id="busca-empresa" 
-                               class="w-full form-control-scordon" 
-                               placeholder="Digite o nome da empresa..." 
+                               id="buscaEmpresa" 
+                               class="w-full form-control-scordon pr-10" 
+                               placeholder="Clique para ver empresas ou digite para buscar..."
                                autocomplete="off">
-                        <div id="lista-empresas" class="absolute z-10 w-full bg-white border border-gray-300 rounded-lg shadow-lg mt-1 max-h-60 overflow-y-auto hidden">
-                            <!-- Lista de empresas será carregada aqui -->
+                        <input type="hidden" name="nIdEmpresa" id="nIdEmpresa" required>
+                        <div class="absolute inset-y-0 right-0 flex items-center pr-3">
+                            <i class="fas fa-search text-gray-400"></i>
                         </div>
-                        <input type="hidden" id="nIdEmpresa" name="nIdEmpresa" required>
+                        <div id="sugestoesEmpresas" class="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg hidden max-h-60 overflow-y-auto" style="z-index: 9999;">
+                            <!-- Sugestões serão carregadas aqui via JavaScript -->
+                        </div>
                     </div>
-                    <small class="text-gray-500 mt-1 block">
-                        <i class="fas fa-search mr-1"></i>
-                        Digite para buscar as empresas
-                    </small>
+                    <div id="empresaSelecionada" class="mt-2 hidden">
+                        <span class="inline-flex items-center px-3 py-1 rounded-full text-sm bg-scordon-100 text-scordon-800">
+                            <span id="nomeEmpresaSelecionada"></span>
+                            <button type="button" id="removerEmpresa" class="ml-2 text-scordon-600 hover:text-scordon-800">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </span>
+                    </div>
                 </div>
 
                 <div>
@@ -308,6 +315,32 @@
     <!-- Scripts -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="{{ asset('js/scordon.js') }}"></script>
+    
+    <!-- Estilos para busca de empresas -->
+    <style>
+        .sugestao-empresa {
+            transition: background-color 0.2s ease;
+        }
+        
+        .sugestao-empresa:hover {
+            background-color: #f3f4f6 !important;
+        }
+        
+        #sugestoesEmpresas {
+            border: 1px solid #d1d5db;
+            border-radius: 0.375rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        
+        #empresaSelecionada {
+            animation: fadeIn 0.3s ease-in-out;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
 <script>
 $(document).ready(function() {
     // Configurar CSRF token para todas as requisições AJAX
@@ -319,35 +352,9 @@ $(document).ready(function() {
         }
     });
     
-    // Carregar empresas
-    carregarEmpresas();
+    // Inicializar busca de empresas
+    initBuscaEmpresas();
     
-    // Implementar busca dinâmica de empresas
-    let empresasData = [];
-    
-    // Busca em tempo real
-    $('#busca-empresa').on('input', function() {
-        const termo = $(this).val().toLowerCase();
-        
-        if (termo.length < 2) {
-            $('#lista-empresas').addClass('hidden');
-            return;
-        }
-        
-        const empresasFiltradas = empresasData.filter(empresa => 
-            empresa.aNome.toLowerCase().includes(termo)
-        );
-        
-        mostrarListaEmpresas(empresasFiltradas);
-    });
-    
-    // Esconder lista ao clicar fora
-    $(document).on('click', function(e) {
-        if (!$(e.target).closest('#busca-empresa, #lista-empresas').length) {
-            $('#lista-empresas').addClass('hidden');
-        }
-    });
-
     // Evento de mudança de empresa (hidden field)
     $('#nIdEmpresa').change(function() {
         const idEmpresa = $(this).val();
@@ -381,56 +388,155 @@ $(document).ready(function() {
         resetarForm();
     });
 
-    function carregarEmpresas() {
-        $.get('{{ route("admin.empresas") }}', function(data) {
-            empresasData = data; // Armazenar para busca
-            console.log(`${data.length} empresas carregadas para busca`);
-        }).fail(function() {
-            alert('Erro ao carregar empresas');
-        });
-    }
-    
-    function mostrarListaEmpresas(empresas) {
-        if (empresas.length === 0) {
-            $('#lista-empresas').addClass('hidden');
-            return;
-        }
+    // Função para inicializar busca de empresas
+    function initBuscaEmpresas() {
+        const buscaInput = $('#buscaEmpresa');
+        const sugestoesDiv = $('#sugestoesEmpresas');
+        const empresaSelecionadaDiv = $('#empresaSelecionada');
+        const nomeEmpresaSpan = $('#nomeEmpresaSelecionada');
+        const idEmpresaInput = $('#nIdEmpresa');
+        const removerEmpresaBtn = $('#removerEmpresa');
         
-        let html = '';
-        empresas.slice(0, 10).forEach(function(empresa) { // Limitar a 10 resultados
-            html += `
-                <div class="empresa-item px-4 py-3 hover:bg-scordon-50 cursor-pointer border-b border-gray-100 last:border-b-0" 
-                     data-id="${empresa.ID}" data-nome="${empresa.aNome}">
-                    <div class="flex items-center">
-                        <i class="fas fa-building text-scordon-500 mr-3"></i>
-                        <div>
-                            <div class="font-semibold text-gray-800">${empresa.aNome}</div>
-                        </div>
-                    </div>
-                </div>
-            `;
+        let timeoutId;
+        
+        // Evento de foco - mostrar primeiras 5 empresas
+        buscaInput.on('focus', function() {
+            if (sugestoesDiv.children().length === 0) {
+                carregarEmpresasIniciais();
+            } else {
+                sugestoesDiv.show();
+            }
         });
         
-        if (empresas.length > 10) {
-            html += `
-                <div class="px-4 py-2 text-center text-sm text-gray-500 bg-gray-50">
-                    <i class="fas fa-info-circle mr-1"></i>
-                    Mostrando 10 de ${empresas.length} resultados. Continue digitando para refinar.
-                </div>
-            `;
-        }
-        
-        $('#lista-empresas').html(html).removeClass('hidden');
-        
-        // Evento de clique nas empresas
-        $('.empresa-item').off('click').on('click', function() {
-            const id = $(this).data('id');
-            const nome = $(this).data('nome');
+        // Evento de digitação com debounce
+        buscaInput.on('input', function() {
+            const termo = $(this).val().trim();
             
-            $('#busca-empresa').val(nome);
-            $('#nIdEmpresa').val(id).trigger('change');
-            $('#lista-empresas').addClass('hidden');
+            clearTimeout(timeoutId);
+            
+            if (termo.length === 0) {
+                // Se campo vazio, mostrar empresas iniciais
+                carregarEmpresasIniciais();
+                return;
+            }
+            
+            if (termo.length < 2) {
+                sugestoesDiv.hide();
+                return;
+            }
+            
+            timeoutId = setTimeout(() => {
+                buscarEmpresas(termo);
+            }, 300);
         });
+        
+        // Fechar sugestões ao clicar fora
+        $(document).on('click', function(e) {
+            if (!$(e.target).closest('#buscaEmpresa, #sugestoesEmpresas').length) {
+                sugestoesDiv.hide();
+            }
+        });
+        
+        // Evento para remover empresa selecionada
+        removerEmpresaBtn.on('click', function() {
+            limparSelecaoEmpresa();
+        });
+        
+        function carregarEmpresasIniciais() {
+            // Usar a rota original que já funcionava
+            $.get('{{ route("admin.empresas") }}')
+            .done(function(data) {
+                // Pegar apenas as primeiras 5
+                const empresasLimitadas = data.slice(0, 5);
+                mostrarSugestoesEmpresas(empresasLimitadas, true);
+            })
+            .fail(function(xhr, status, error) {
+                console.error('Erro ao carregar empresas iniciais:', xhr.responseText);
+            });
+        }
+        
+        function buscarEmpresas(termo) {
+            // Usar a rota original e filtrar no JavaScript
+            $.get('{{ route("admin.empresas") }}')
+            .done(function(data) {
+                // Filtrar empresas que contenham o termo
+                const empresasFiltradas = data.filter(function(empresa) {
+                    return empresa.aNome.toLowerCase().includes(termo.toLowerCase());
+                });
+                mostrarSugestoesEmpresas(empresasFiltradas);
+            })
+            .fail(function(xhr, status, error) {
+                console.error('Erro ao buscar empresas:', xhr.responseText);
+            });
+        }
+        
+        function mostrarSugestoesEmpresas(empresas, isInicial = false) {
+            // Verificar se empresas é um array válido
+            if (!Array.isArray(empresas)) {
+                sugestoesDiv.html(`<div class="px-4 py-2 text-red-500 text-sm">Erro ao carregar empresas</div>`).show();
+                return;
+            }
+            
+            if (empresas.length === 0) {
+                const mensagem = isInicial ? 'Nenhuma empresa cadastrada' : 'Nenhuma empresa encontrada';
+                sugestoesDiv.html(`<div class="px-4 py-2 text-gray-500 text-sm">${mensagem}</div>`).show();
+                return;
+            }
+            
+            let html = '';
+            
+            // Adicionar cabeçalho se for busca inicial
+            if (isInicial) {
+                html += '<div class="px-4 py-2 text-xs text-gray-500 bg-gray-50 border-b">Primeiras empresas (digite para buscar mais):</div>';
+            }
+            
+            empresas.forEach(function(empresa) {
+                html += `
+                    <div class="px-4 py-2 hover:bg-gray-100 cursor-pointer sugestao-empresa" 
+                         data-id="${empresa.ID}" 
+                         data-nome="${empresa.aNome}">
+                        <i class="fas fa-building text-gray-400 mr-2"></i>
+                        ${empresa.aNome}
+                    </div>
+                `;
+            });
+            
+            sugestoesDiv.html(html).show();
+            
+            // Evento de clique nas sugestões
+            $('.sugestao-empresa').on('click', function() {
+                const id = $(this).data('id');
+                const nome = $(this).data('nome');
+                
+                selecionarEmpresa(id, nome);
+            });
+        }
+        
+        function selecionarEmpresa(id, nome) {
+            idEmpresaInput.val(id);
+            mostrarEmpresaSelecionada(id, nome);
+            buscaInput.val('');
+            sugestoesDiv.hide();
+            
+            // Disparar evento de mudança para atualizar atendentes
+            idEmpresaInput.trigger('change');
+        }
+        
+        function mostrarEmpresaSelecionada(id, nome) {
+            nomeEmpresaSpan.text(nome);
+            empresaSelecionadaDiv.show();
+            buscaInput.hide();
+        }
+        
+        function limparSelecaoEmpresa() {
+            idEmpresaInput.val('');
+            empresaSelecionadaDiv.hide();
+            buscaInput.show().val('');
+            sugestoesDiv.hide();
+            
+            // Disparar evento de mudança para atualizar atendentes
+            idEmpresaInput.trigger('change');
+        }
     }
 
     function carregarAtendentes(idEmpresa) {

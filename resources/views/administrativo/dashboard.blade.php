@@ -115,26 +115,54 @@
                 <form method="GET" action="{{ route('admin.dashboard') }}" class="grid md:grid-cols-5 gap-4">
                     <div>
                         <label for="nIdEmpresa" class="block text-sm font-semibold text-gray-700 mb-2">Empresa</label>
-                        <select name="nIdEmpresa" id="nIdEmpresa" class="w-full form-select-scordon">
-                            <option value="">Todas as empresas</option>
-                            @foreach($empresas as $empresa)
-                                <option value="{{ $empresa->ID }}" {{ $idEmpresa == $empresa->ID ? 'selected' : '' }}>
-                                    {{ $empresa->aNome }}
-                                </option>
-                            @endforeach
-                        </select>
+                        <div class="relative">
+                            <input type="text" 
+                                   id="buscaEmpresa" 
+                                   class="w-full form-control-scordon pr-10" 
+                                   placeholder="Clique para ver empresas ou digite para buscar..."
+                                   autocomplete="off">
+                            <input type="hidden" name="nIdEmpresa" id="nIdEmpresa" value="{{ $idEmpresa }}">
+                            <div class="absolute inset-y-0 right-0 flex items-center pr-3">
+                                <i class="fas fa-search text-gray-400"></i>
+                            </div>
+                            <div id="sugestoesEmpresas" class="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg hidden max-h-60 overflow-y-auto" style="z-index: 9999;">
+                                <!-- Sugestões serão carregadas aqui via JavaScript -->
+                            </div>
+                        </div>
+                        <div id="empresaSelecionada" class="mt-2 hidden">
+                            <span class="inline-flex items-center px-3 py-1 rounded-full text-sm bg-scordon-100 text-scordon-800">
+                                <span id="nomeEmpresaSelecionada"></span>
+                                <button type="button" id="removerEmpresa" class="ml-2 text-scordon-600 hover:text-scordon-800">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </span>
+                        </div>
                     </div>
                     
                     <div>
                         <label for="nIdAtendente" class="block text-sm font-semibold text-gray-700 mb-2">Atendente</label>
-                        <select name="nIdAtendente" id="nIdAtendente" class="w-full form-select-scordon">
-                            <option value="">Todos os atendentes</option>
-                            @foreach($atendentes as $atendente)
-                                <option value="{{ $atendente->ID }}" {{ $idAtendente == $atendente->ID ? 'selected' : '' }}>
-                                    {{ $atendente->aNome }}
-                                </option>
-                            @endforeach
-                        </select>
+                        <div class="relative">
+                            <input type="text" 
+                                   id="buscaAtendente" 
+                                   class="w-full form-control-scordon pr-10" 
+                                   placeholder="Clique para ver atendentes ou digite para buscar..."
+                                   autocomplete="off">
+                            <input type="hidden" name="nIdAtendente" id="nIdAtendente" value="{{ $idAtendente }}">
+                            <div class="absolute inset-y-0 right-0 flex items-center pr-3">
+                                <i class="fas fa-search text-gray-400"></i>
+                            </div>
+                            <div id="sugestoesAtendentes" class="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg hidden max-h-60 overflow-y-auto" style="z-index: 9999;">
+                                <!-- Sugestões serão carregadas aqui via JavaScript -->
+                            </div>
+                        </div>
+                        <div id="atendenteSelecionado" class="mt-2 hidden">
+                            <span class="inline-flex items-center px-3 py-1 rounded-full text-sm bg-scordon-100 text-scordon-800">
+                                <span id="nomeAtendenteSelecionado"></span>
+                                <button type="button" id="removerAtendente" class="ml-2 text-scordon-600 hover:text-scordon-800">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </span>
+                        </div>
                     </div>
                     
                     <div>
@@ -324,8 +352,40 @@
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="{{ asset('js/scordon.js') }}"></script>
     
+    <!-- Estilos para busca de empresas -->
+    <style>
+        .sugestao-empresa, .sugestao-atendente {
+            transition: background-color 0.2s ease;
+        }
+        
+        .sugestao-empresa:hover, .sugestao-atendente:hover {
+            background-color: #f3f4f6 !important;
+        }
+        
+        #sugestoesEmpresas, #sugestoesAtendentes {
+            border: 1px solid #d1d5db;
+            border-radius: 0.375rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        
+        #empresaSelecionada, #atendenteSelecionado {
+            animation: fadeIn 0.3s ease-in-out;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+    
     <script>
     $(document).ready(function() {
+        // Inicializar busca de empresas
+        initBuscaEmpresas();
+        
+        // Inicializar busca de atendentes
+        initBuscaAtendentes();
+        
         // Filtro de empresa/atendente
         $('#nIdEmpresa').change(function() {
             const idEmpresa = $(this).val();
@@ -415,6 +475,292 @@
             });
         }
     });
+
+    // Função para inicializar busca de empresas
+    function initBuscaEmpresas() {
+        const buscaInput = $('#buscaEmpresa');
+        const sugestoesDiv = $('#sugestoesEmpresas');
+        const empresaSelecionadaDiv = $('#empresaSelecionada');
+        const nomeEmpresaSpan = $('#nomeEmpresaSelecionada');
+        const idEmpresaInput = $('#nIdEmpresa');
+        const removerEmpresaBtn = $('#removerEmpresa');
+        
+        let timeoutId;
+        
+        // Carregar empresa selecionada inicialmente se existir
+        @if($idEmpresa)
+            @foreach($empresas as $empresa)
+                @if($empresa->ID == $idEmpresa)
+                    mostrarEmpresaSelecionada('{{ $empresa->ID }}', '{{ $empresa->aNome }}');
+                @endif
+            @endforeach
+        @endif
+        
+        // Evento de foco - mostrar primeiras 5 empresas
+        buscaInput.on('focus', function() {
+            if (sugestoesDiv.children().length === 0) {
+                carregarEmpresasIniciais();
+            } else {
+                sugestoesDiv.show();
+            }
+        });
+        
+        // Evento de digitação com debounce
+        buscaInput.on('input', function() {
+            const termo = $(this).val().trim();
+            
+            clearTimeout(timeoutId);
+            
+            if (termo.length === 0) {
+                // Se campo vazio, mostrar empresas iniciais
+                carregarEmpresasIniciais();
+                return;
+            }
+            
+            if (termo.length < 2) {
+                sugestoesDiv.hide();
+                return;
+            }
+            
+            timeoutId = setTimeout(() => {
+                buscarEmpresas(termo);
+            }, 300);
+        });
+        
+        // Fechar sugestões ao clicar fora
+        $(document).on('click', function(e) {
+            if (!$(e.target).closest('#buscaEmpresa, #sugestoesEmpresas').length) {
+                sugestoesDiv.hide();
+            }
+        });
+        
+        // Evento para remover empresa selecionada
+        removerEmpresaBtn.on('click', function() {
+            limparSelecaoEmpresa();
+        });
+        
+        function carregarEmpresasIniciais() {
+            $.get('/admin/api/empresas/buscar', { q: '', limit: 5 })
+                .done(function(data) {
+                    mostrarSugestoes(data, true);
+                })
+                .fail(function() {
+                    console.error('Erro ao carregar empresas iniciais');
+                });
+        }
+        
+        function buscarEmpresas(termo) {
+            $.get('/admin/api/empresas/buscar', { q: termo })
+                .done(function(data) {
+                    mostrarSugestoes(data);
+                })
+                .fail(function() {
+                    console.error('Erro ao buscar empresas');
+                });
+        }
+        
+        function mostrarSugestoes(empresas, isInicial = false) {
+            if (empresas.length === 0) {
+                const mensagem = isInicial ? 'Nenhuma empresa cadastrada' : 'Nenhuma empresa encontrada';
+                sugestoesDiv.html(`<div class="px-4 py-2 text-gray-500 text-sm">${mensagem}</div>`).show();
+                return;
+            }
+            
+            let html = '';
+            
+            // Adicionar cabeçalho se for busca inicial
+            if (isInicial) {
+                html += '<div class="px-4 py-2 text-xs text-gray-500 bg-gray-50 border-b">Primeiras empresas (digite para buscar mais):</div>';
+            }
+            
+            empresas.forEach(function(empresa) {
+                html += `
+                    <div class="px-4 py-2 hover:bg-gray-100 cursor-pointer sugestao-empresa" 
+                         data-id="${empresa.ID}" 
+                         data-nome="${empresa.aNome}">
+                        <i class="fas fa-building text-gray-400 mr-2"></i>
+                        ${empresa.aNome}
+                    </div>
+                `;
+            });
+            
+            sugestoesDiv.html(html).show();
+            
+            // Evento de clique nas sugestões
+            $('.sugestao-empresa').on('click', function() {
+                const id = $(this).data('id');
+                const nome = $(this).data('nome');
+                
+                selecionarEmpresa(id, nome);
+            });
+        }
+        
+        function selecionarEmpresa(id, nome) {
+            idEmpresaInput.val(id);
+            mostrarEmpresaSelecionada(id, nome);
+            buscaInput.val('');
+            sugestoesDiv.hide();
+            
+            // Disparar evento de mudança para atualizar atendentes
+            idEmpresaInput.trigger('change');
+        }
+        
+        function mostrarEmpresaSelecionada(id, nome) {
+            nomeEmpresaSpan.text(nome);
+            empresaSelecionadaDiv.show();
+            buscaInput.hide();
+        }
+        
+        function limparSelecaoEmpresa() {
+            idEmpresaInput.val('');
+            empresaSelecionadaDiv.hide();
+            buscaInput.show().val('');
+            sugestoesDiv.hide();
+            
+            // Disparar evento de mudança para atualizar atendentes
+            idEmpresaInput.trigger('change');
+        }
+    }
+
+    // Função para inicializar busca de atendentes
+    function initBuscaAtendentes() {
+        const buscaInput = $('#buscaAtendente');
+        const sugestoesDiv = $('#sugestoesAtendentes');
+        const atendenteSelecionadoDiv = $('#atendenteSelecionado');
+        const nomeAtendenteSpan = $('#nomeAtendenteSelecionado');
+        const idAtendenteInput = $('#nIdAtendente');
+        const removerAtendenteBtn = $('#removerAtendente');
+        
+        let timeoutId;
+        
+        // Carregar atendente selecionado inicialmente se existir
+        @if($idAtendente)
+            @foreach($atendentes as $atendente)
+                @if($atendente->ID == $idAtendente)
+                    mostrarAtendenteSelecionado('{{ $atendente->ID }}', '{{ $atendente->aNome }}');
+                @endif
+            @endforeach
+        @endif
+        
+        // Evento de foco - mostrar primeiros 5 atendentes
+        buscaInput.on('focus', function() {
+            if (sugestoesDiv.children().length === 0) {
+                carregarAtendentesIniciais();
+            } else {
+                sugestoesDiv.show();
+            }
+        });
+        
+        // Evento de digitação com debounce
+        buscaInput.on('input', function() {
+            const termo = $(this).val().trim();
+            
+            clearTimeout(timeoutId);
+            
+            if (termo.length === 0) {
+                // Se campo vazio, mostrar atendentes iniciais
+                carregarAtendentesIniciais();
+                return;
+            }
+            
+            if (termo.length < 2) {
+                sugestoesDiv.hide();
+                return;
+            }
+            
+            timeoutId = setTimeout(() => {
+                buscarAtendentes(termo);
+            }, 300);
+        });
+        
+        // Fechar sugestões ao clicar fora
+        $(document).on('click', function(e) {
+            if (!$(e.target).closest('#buscaAtendente, #sugestoesAtendentes').length) {
+                sugestoesDiv.hide();
+            }
+        });
+        
+        // Evento para remover atendente selecionado
+        removerAtendenteBtn.on('click', function() {
+            limparSelecaoAtendente();
+        });
+        
+        function carregarAtendentesIniciais() {
+            $.get('/admin/api/atendentes/buscar', { q: '', limit: 5 })
+                .done(function(data) {
+                    mostrarSugestoesAtendentes(data, true);
+                })
+                .fail(function() {
+                    console.error('Erro ao carregar atendentes iniciais');
+                });
+        }
+        
+        function buscarAtendentes(termo) {
+            $.get('/admin/api/atendentes/buscar', { q: termo })
+                .done(function(data) {
+                    mostrarSugestoesAtendentes(data);
+                })
+                .fail(function() {
+                    console.error('Erro ao buscar atendentes');
+                });
+        }
+        
+        function mostrarSugestoesAtendentes(atendentes, isInicial = false) {
+            if (atendentes.length === 0) {
+                const mensagem = isInicial ? 'Nenhum atendente cadastrado' : 'Nenhum atendente encontrado';
+                sugestoesDiv.html(`<div class="px-4 py-2 text-gray-500 text-sm">${mensagem}</div>`).show();
+                return;
+            }
+            
+            let html = '';
+            
+            // Adicionar cabeçalho se for busca inicial
+            if (isInicial) {
+                html += '<div class="px-4 py-2 text-xs text-gray-500 bg-gray-50 border-b">Primeiros atendentes (digite para buscar mais):</div>';
+            }
+            
+            atendentes.forEach(function(atendente) {
+                html += `
+                    <div class="px-4 py-2 hover:bg-gray-100 cursor-pointer sugestao-atendente" 
+                         data-id="${atendente.ID}" 
+                         data-nome="${atendente.aNome}">
+                        <i class="fas fa-user text-gray-400 mr-2"></i>
+                        ${atendente.aNome}
+                    </div>
+                `;
+            });
+            
+            sugestoesDiv.html(html).show();
+            
+            // Evento de clique nas sugestões
+            $('.sugestao-atendente').on('click', function() {
+                const id = $(this).data('id');
+                const nome = $(this).data('nome');
+                
+                selecionarAtendente(id, nome);
+            });
+        }
+        
+        function selecionarAtendente(id, nome) {
+            idAtendenteInput.val(id);
+            mostrarAtendenteSelecionado(id, nome);
+            buscaInput.val('');
+            sugestoesDiv.hide();
+        }
+        
+        function mostrarAtendenteSelecionado(id, nome) {
+            nomeAtendenteSpan.text(nome);
+            atendenteSelecionadoDiv.show();
+            buscaInput.hide();
+        }
+        
+        function limparSelecaoAtendente() {
+            idAtendenteInput.val('');
+            atendenteSelecionadoDiv.hide();
+            buscaInput.show().val('');
+            sugestoesDiv.hide();
+        }
+    }
     </script>
 </body>
 </html>
