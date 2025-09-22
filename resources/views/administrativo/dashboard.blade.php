@@ -185,15 +185,15 @@
             </div>
 
             <!-- Cards de Estatísticas -->
-            <div class="grid md:grid-cols-4 gap-6 mb-12">
+            <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
                 <div class="bg-white rounded-2xl shadow-xl p-6 border-l-4 border-scordon-500">
                     <div class="flex items-center justify-between">
                         <div>
-                            <p class="text-sm font-semibold text-gray-600 uppercase tracking-wide">Total de Avaliações</p>
-                            <p class="text-3xl font-bold text-gray-800">{{ $totalAvaliacoes }}</p>
+                            <p class="text-sm font-semibold text-gray-600 uppercase tracking-wide">Links Gerados</p>
+                            <p class="text-3xl font-bold text-gray-800">{{ $totalLinksGerados }}</p>
                         </div>
                         <div class="bg-scordon-100 p-3 rounded-full">
-                            <i class="fas fa-star text-2xl text-scordon-600"></i>
+                            <i class="fas fa-link text-2xl text-scordon-600"></i>
                         </div>
                     </div>
                 </div>
@@ -201,11 +201,11 @@
                 <div class="bg-white rounded-2xl shadow-xl p-6 border-l-4 border-green-500">
                     <div class="flex items-center justify-between">
                         <div>
-                            <p class="text-sm font-semibold text-gray-600 uppercase tracking-wide">Nota Média</p>
-                            <p class="text-3xl font-bold text-gray-800">{{ number_format($notaMedia, 1) }}</p>
+                            <p class="text-sm font-semibold text-gray-600 uppercase tracking-wide">Avaliações Recebidas</p>
+                            <p class="text-3xl font-bold text-gray-800">{{ $totalAvaliacoes }}</p>
                         </div>
                         <div class="bg-green-100 p-3 rounded-full">
-                            <i class="fas fa-chart-line text-2xl text-green-600"></i>
+                            <i class="fas fa-star text-2xl text-green-600"></i>
                         </div>
                     </div>
                 </div>
@@ -213,11 +213,11 @@
                 <div class="bg-white rounded-2xl shadow-xl p-6 border-l-4 border-blue-500">
                     <div class="flex items-center justify-between">
                         <div>
-                            <p class="text-sm font-semibold text-gray-600 uppercase tracking-wide">Muito Satisfeitos</p>
-                            <p class="text-3xl font-bold text-gray-800">{{ $distribuicaoNotas[5] ?? 0 }}</p>
+                            <p class="text-sm font-semibold text-gray-600 uppercase tracking-wide">Taxa de Conversão</p>
+                            <p class="text-3xl font-bold text-gray-800">{{ number_format($taxaConversao, 1) }}%</p>
                         </div>
                         <div class="bg-blue-100 p-3 rounded-full">
-                            <i class="fas fa-thumbs-up text-2xl text-blue-600"></i>
+                            <i class="fas fa-percentage text-2xl text-blue-600"></i>
                         </div>
                     </div>
                 </div>
@@ -225,13 +225,50 @@
                 <div class="bg-white rounded-2xl shadow-xl p-6 border-l-4 border-purple-500">
                     <div class="flex items-center justify-between">
                         <div>
-                            <p class="text-sm font-semibold text-gray-600 uppercase tracking-wide">Taxa de Satisfação</p>
-                            <p class="text-3xl font-bold text-gray-800">
-                                {{ $totalAvaliacoes > 0 ? number_format((($distribuicaoNotas[4] ?? 0) + ($distribuicaoNotas[5] ?? 0)) / $totalAvaliacoes * 100, 1) : 0 }}%
-                            </p>
+                            <p class="text-sm font-semibold text-gray-600 uppercase tracking-wide">Nota Média</p>
+                            <p class="text-3xl font-bold text-gray-800">{{ number_format($notaMedia, 1) }}</p>
                         </div>
                         <div class="bg-purple-100 p-3 rounded-full">
-                            <i class="fas fa-heart text-2xl text-purple-600"></i>
+                            <i class="fas fa-chart-line text-2xl text-purple-600"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Cards de Satisfação -->
+            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
+                <div class="bg-white rounded-2xl shadow-xl p-6 border-l-4 border-emerald-500">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-semibold text-gray-600 uppercase tracking-wide">Muito Satisfeitos</p>
+                            <p class="text-3xl font-bold text-gray-800">{{ $distribuicaoNotas[5] ?? 0 }}</p>
+                        </div>
+                        <div class="bg-emerald-100 p-3 rounded-full">
+                            <i class="fas fa-thumbs-up text-2xl text-emerald-600"></i>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="bg-white rounded-2xl shadow-xl p-6 border-l-4 border-yellow-500">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-semibold text-gray-600 uppercase tracking-wide">Satisfeitos</p>
+                            <p class="text-3xl font-bold text-gray-800">{{ $distribuicaoNotas[4] ?? 0 }}</p>
+                        </div>
+                        <div class="bg-yellow-100 p-3 rounded-full">
+                            <i class="fas fa-smile text-2xl text-yellow-600"></i>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="bg-white rounded-2xl shadow-xl p-6 border-l-4 border-red-500">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-semibold text-gray-600 uppercase tracking-wide">Insatisfeitos</p>
+                            <p class="text-3xl font-bold text-gray-800">{{ ($distribuicaoNotas[1] ?? 0) + ($distribuicaoNotas[2] ?? 0) }}</p>
+                        </div>
+                        <div class="bg-red-100 p-3 rounded-full">
+                            <i class="fas fa-frown text-2xl text-red-600"></i>
                         </div>
                     </div>
                 </div>

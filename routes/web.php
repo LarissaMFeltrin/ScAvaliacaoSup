@@ -36,6 +36,8 @@ Route::middleware(['auth'])->group(function () {
         Route::middleware(['role:admin,suporte'])->group(function () {
             Route::get('/dashboard', [AdministrativoController::class, 'dashboard'])->name('admin.dashboard');
             Route::get('/relatorio', [AdministrativoController::class, 'relatorio'])->name('admin.relatorio');
+            Route::get('/relatorio/pdf-avaliacoes', [AdministrativoController::class, 'pdfAvaliacoes'])->name('admin.pdf.avaliacoes');
+            Route::get('/relatorio/pdf-produtividade', [AdministrativoController::class, 'pdfProdutividade'])->name('admin.pdf.produtividade');
             Route::get('/api/empresas/{idEmpresa}/atendentes', [AdministrativoController::class, 'obterAtendentes'])->name('admin.api.atendentes');
             Route::get('/api/empresas/buscar', [AdministrativoController::class, 'buscarEmpresas'])->name('admin.api.empresas.buscar');
             Route::get('/api/atendentes/buscar', [AdministrativoController::class, 'buscarAtendentes'])->name('admin.api.atendentes.buscar');

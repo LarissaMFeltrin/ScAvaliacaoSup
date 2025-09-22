@@ -95,17 +95,33 @@
             <div class="text-center mb-12">
                 <h1 class="text-4xl md:text-5xl font-bold text-gray-800 mb-4">
                     <i class="fas fa-file-alt text-scordon-500 mr-3"></i>
-                    Relatório de Avaliações
+                    Relatórios
                 </h1>
-                <p class="text-xl text-gray-600 mb-6">Análise detalhada das avaliações recebidas</p>
+                <p class="text-xl text-gray-600 mb-6">Análise detalhada das avaliações e produtividade</p>
                 <a href="{{ route('admin.dashboard') }}" class="btn-verde">
                     <i class="fas fa-chart-bar mr-2"></i>
                     Ver Dashboard
                 </a>
             </div>
 
-            <!-- Filtros -->
+            <!-- Abas de Navegação -->
             <div class="bg-white rounded-2xl shadow-xl p-6 mb-8">
+                <div class="flex space-x-1 bg-gray-100 p-1 rounded-lg">
+                    <button onclick="mostrarAba('avaliacoes')" id="tab-avaliacoes" class="flex-1 py-2 px-4 text-sm font-medium rounded-md transition-colors bg-white text-scordon-600 shadow-sm">
+                        <i class="fas fa-star mr-2"></i>
+                        Avaliações
+                    </button>
+                    <button onclick="mostrarAba('produtividade')" id="tab-produtividade" class="flex-1 py-2 px-4 text-sm font-medium rounded-md transition-colors text-gray-500 hover:text-gray-700">
+                        <i class="fas fa-users mr-2"></i>
+                        Produtividade
+                    </button>
+                </div>
+            </div>
+
+            <!-- Conteúdo da Aba de Avaliações -->
+            <div id="conteudo-avaliacoes" class="aba-conteudo">
+                <!-- Filtros -->
+                <div class="bg-white rounded-2xl shadow-xl p-6 mb-8">
                 <h3 class="text-xl font-bold text-gray-800 mb-6">
                     <i class="fas fa-filter text-scordon-500 mr-2"></i>
                     Filtros de Pesquisa
@@ -182,6 +198,57 @@
                 </form>
             </div>
 
+            <!-- Cards de Estatísticas -->
+            <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                <div class="bg-white rounded-2xl shadow-xl p-6 border-l-4 border-scordon-500">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-semibold text-gray-600 uppercase tracking-wide">Links Gerados</p>
+                            <p class="text-3xl font-bold text-gray-800">{{ $totalLinksGerados }}</p>
+                        </div>
+                        <div class="bg-scordon-100 p-3 rounded-full">
+                            <i class="fas fa-link text-2xl text-scordon-600"></i>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="bg-white rounded-2xl shadow-xl p-6 border-l-4 border-green-500">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-semibold text-gray-600 uppercase tracking-wide">Avaliações Recebidas</p>
+                            <p class="text-3xl font-bold text-gray-800">{{ $totalAvaliacoes }}</p>
+                        </div>
+                        <div class="bg-green-100 p-3 rounded-full">
+                            <i class="fas fa-star text-2xl text-green-600"></i>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="bg-white rounded-2xl shadow-xl p-6 border-l-4 border-blue-500">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-semibold text-gray-600 uppercase tracking-wide">Taxa de Conversão</p>
+                            <p class="text-3xl font-bold text-gray-800">{{ number_format($taxaConversao, 1) }}%</p>
+                        </div>
+                        <div class="bg-blue-100 p-3 rounded-full">
+                            <i class="fas fa-percentage text-2xl text-blue-600"></i>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="bg-white rounded-2xl shadow-xl p-6 border-l-4 border-purple-500">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-semibold text-gray-600 uppercase tracking-wide">Registros Encontrados</p>
+                            <p class="text-3xl font-bold text-gray-800">{{ $avaliacoes->total() }}</p>
+                        </div>
+                        <div class="bg-purple-100 p-3 rounded-full">
+                            <i class="fas fa-list text-2xl text-purple-600"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Resumo dos Resultados -->
             <div class="bg-white rounded-2xl shadow-xl p-6 mb-8">
                 <div class="flex flex-col md:flex-row justify-between items-center">
@@ -194,9 +261,9 @@
                     </div>
                     
                     @if($avaliacoes->count() > 0)
-                        <button onclick="exportarCSV('tabela-avaliacoes', 'relatorio-avaliacoes')" class="btn-verde mt-4 md:mt-0">
-                            <i class="fas fa-download mr-2"></i>
-                            Exportar CSV
+                        <button onclick="exportarPDFAvaliacoes()" class="btn-vermelho mt-4 md:mt-0">
+                            <i class="fas fa-file-pdf mr-2"></i>
+                            Exportar PDF
                         </button>
                     @endif
                 </div>
@@ -212,6 +279,7 @@
                                     <th class="px-6 py-4 text-left font-semibold">Data/Hora</th>
                                     <th class="px-6 py-4 text-left font-semibold">Empresa</th>
                                     <th class="px-6 py-4 text-left font-semibold">Atendente</th>
+                                    <th class="px-6 py-4 text-left font-semibold">Gerado Por</th>
                                     <th class="px-6 py-4 text-left font-semibold">Cliente</th>
                                     <th class="px-6 py-4 text-center font-semibold">Avaliação</th>
                                     <th class="px-6 py-4 text-left font-semibold">Comentário</th>
@@ -236,6 +304,11 @@
                                         <td class="px-6 py-4">
                                             <div class="text-gray-700">
                                                 {{ $avaliacao->atendente->aNome }}
+                                            </div>
+                                        </td>
+                                        <td class="px-6 py-4">
+                                            <div class="text-gray-700">
+                                                {{ $avaliacao->usuarioGerador?->aNome ?? 'Sistema' }}
                                             </div>
                                         </td>
                                         <td class="px-6 py-4">
@@ -322,6 +395,185 @@
                     </div>
                 </div>
             @endif
+            </div>
+
+            <!-- Conteúdo da Aba de Produtividade -->
+            <div id="conteudo-produtividade" class="aba-conteudo hidden">
+                @php
+                    // Calcular dados de produtividade
+                    $queryTodasAvaliacoes = \App\Models\Avaliacao::with(['empresa', 'atendente', 'usuarioGerador']);
+                    
+                    if ($idEmpresa) {
+                        $queryTodasAvaliacoes->where('nIdEmpresa', $idEmpresa);
+                    }
+                    
+                    if ($idAtendente) {
+                        $queryTodasAvaliacoes->where('nIdAtendente', $idAtendente);
+                    }
+                    
+                    if ($dataInicio) {
+                        $queryTodasAvaliacoes->whereDate('dCriadoEm', '>=', $dataInicio);
+                    }
+                    
+                    if ($dataFim) {
+                        $queryTodasAvaliacoes->whereDate('dCriadoEm', '<=', $dataFim);
+                    }
+
+                    $produtividadeUsuarios = $queryTodasAvaliacoes
+                        ->select('nIdUsuarioGerador', DB::raw('count(*) as total_links_gerados'))
+                        ->groupBy('nIdUsuarioGerador')
+                        ->get();
+
+                    $avaliacoesCompletadas = \App\Models\Avaliacao::with(['usuarioGerador'])
+                        ->whereNotNull('nNota')
+                        ->when($idEmpresa, function($query) use ($idEmpresa) {
+                            return $query->where('nIdEmpresa', $idEmpresa);
+                        })
+                        ->when($idAtendente, function($query) use ($idAtendente) {
+                            return $query->where('nIdAtendente', $idAtendente);
+                        })
+                        ->when($dataInicio, function($query) use ($dataInicio) {
+                            return $query->whereDate('dAvaliadoEm', '>=', $dataInicio);
+                        })
+                        ->when($dataFim, function($query) use ($dataFim) {
+                            return $query->whereDate('dAvaliadoEm', '<=', $dataFim);
+                        })
+                        ->select('nIdUsuarioGerador', DB::raw('count(*) as total_avaliacoes'))
+                        ->groupBy('nIdUsuarioGerador')
+                        ->get()
+                        ->keyBy('nIdUsuarioGerador');
+
+                    $relatorioProdutividade = [];
+                    foreach ($produtividadeUsuarios as $item) {
+                        $usuario = \App\Models\Usuario::find($item->nIdUsuarioGerador);
+                        $avaliacoes = $avaliacoesCompletadas->get($item->nIdUsuarioGerador);
+                        
+                        // Se não encontrar o usuário, usar um nome padrão baseado no ID
+                        $nomeUsuario = 'Usuário não encontrado';
+                        if ($usuario) {
+                            $nomeUsuario = $usuario->aNome;
+                        } elseif ($item->nIdUsuarioGerador == 1) {
+                            $nomeUsuario = 'Sistema/Admin';
+                        } else {
+                            $nomeUsuario = 'Usuário ID: ' . $item->nIdUsuarioGerador;
+                        }
+                        
+                        $relatorioProdutividade[] = [
+                            'usuario' => $nomeUsuario,
+                            'total_links_gerados' => $item->total_links_gerados,
+                            'total_avaliacoes' => $avaliacoes ? $avaliacoes->total_avaliacoes : 0,
+                            'taxa_conversao' => $item->total_links_gerados > 0 ? 
+                                round(($avaliacoes ? $avaliacoes->total_avaliacoes : 0) / $item->total_links_gerados * 100, 1) : 0
+                        ];
+                    }
+
+                    usort($relatorioProdutividade, function($a, $b) {
+                        return $b['total_links_gerados'] <=> $a['total_links_gerados'];
+                    });
+                @endphp
+
+                @if(count($relatorioProdutividade) > 0)
+                    <!-- Tabela de Produtividade -->
+                    <div class="bg-white rounded-2xl shadow-xl overflow-hidden mb-8">
+                        <div class="overflow-x-auto">
+                            <table class="w-full table-scordon" id="tabela-produtividade">
+                                <thead class="gradient-bg text-white">
+                                    <tr>
+                                        <th class="px-6 py-4 text-left font-semibold">Usuário</th>
+                                        <th class="px-6 py-4 text-center font-semibold">Links Gerados</th>
+                                        <th class="px-6 py-4 text-center font-semibold">Avaliações Recebidas</th>
+                                        <th class="px-6 py-4 text-center font-semibold">Taxa de Conversão</th>
+                                        <th class="px-6 py-4 text-center font-semibold">Performance</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-gray-200">
+                                    @foreach($relatorioProdutividade as $index => $usuario)
+                                        <tr class="hover:bg-scordon-50 transition-colors">
+                                            <td class="px-6 py-4">
+                                                <div class="flex items-center">
+                                                    <div class="bg-scordon-100 text-scordon-800 w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm mr-3">
+                                                        {{ $index + 1 }}
+                                                    </div>
+                                                    <div class="font-semibold text-gray-800">
+                                                        {{ $usuario['usuario'] }}
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td class="px-6 py-4 text-center">
+                                                <div class="text-2xl font-bold text-scordon-600">
+                                                    {{ $usuario['total_links_gerados'] }}
+                                                </div>
+                                            </td>
+                                            <td class="px-6 py-4 text-center">
+                                                <div class="text-2xl font-bold text-green-600">
+                                                    {{ $usuario['total_avaliacoes'] }}
+                                                </div>
+                                            </td>
+                                            <td class="px-6 py-4 text-center">
+                                                <div class="text-2xl font-bold text-blue-600">
+                                                    {{ $usuario['taxa_conversao'] }}%
+                                                </div>
+                                            </td>
+                                            <td class="px-6 py-4 text-center">
+                                                @if($usuario['taxa_conversao'] >= 80)
+                                                    <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-green-100 text-green-800">
+                                                        <i class="fas fa-star mr-1"></i>
+                                                        Excelente
+                                                    </span>
+                                                @elseif($usuario['taxa_conversao'] >= 60)
+                                                    <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-yellow-100 text-yellow-800">
+                                                        <i class="fas fa-thumbs-up mr-1"></i>
+                                                        Bom
+                                                    </span>
+                                                @elseif($usuario['taxa_conversao'] >= 40)
+                                                    <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-orange-100 text-orange-800">
+                                                        <i class="fas fa-exclamation-triangle mr-1"></i>
+                                                        Regular
+                                                    </span>
+                                                @else
+                                                    <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-red-100 text-red-800">
+                                                        <i class="fas fa-exclamation-circle mr-1"></i>
+                                                        Precisa Melhorar
+                                                    </span>
+                                                @endif
+                                            </td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Botão de Exportação -->
+                    <div class="text-center mb-8">
+                        <button onclick="exportarPDFProdutividade()" class="btn-vermelho">
+                            <i class="fas fa-file-pdf mr-2"></i>
+                            Exportar PDF
+                        </button>
+                    </div>
+                @else
+                    <!-- Estado Vazio -->
+                    <div class="bg-white rounded-2xl shadow-xl p-12 text-center">
+                        <div class="mb-6">
+                            <i class="fas fa-users text-6xl text-gray-300"></i>
+                        </div>
+                        <h3 class="text-2xl font-bold text-gray-800 mb-4">Nenhum dado de produtividade encontrado</h3>
+                        <p class="text-gray-600 mb-8">
+                            Tente ajustar os filtros ou aguarde usuários gerarem links de avaliação.
+                        </p>
+                        <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                            <a href="{{ route('admin.index') }}" class="btn-scordon">
+                                <i class="fas fa-plus mr-2"></i>
+                                Gerar Novo Link
+                            </a>
+                            <a href="{{ route('admin.dashboard') }}" class="btn-verde">
+                                <i class="fas fa-chart-bar mr-2"></i>
+                                Ver Dashboard
+                            </a>
+                        </div>
+                    </div>
+                @endif
+            </div>
         </div>
     </section>
 
@@ -374,6 +626,26 @@
             background-color: #f3f4f6 !important;
         }
         
+        .btn-vermelho {
+            background: linear-gradient(135deg, #dc2626, #b91c1c);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 12px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            text-decoration: none;
+        }
+        
+        .btn-vermelho:hover {
+            background: linear-gradient(135deg, #b91c1c, #991b1b);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(220, 38, 38, 0.3);
+        }
+        
         #sugestoesEmpresas, #sugestoesAtendentes {
             border: 1px solid #d1d5db;
             border-radius: 0.375rem;
@@ -387,6 +659,14 @@
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(-10px); }
             to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .aba-conteudo {
+            display: block;
+        }
+        
+        .aba-conteudo.hidden {
+            display: none;
         }
     </style>
     
@@ -419,6 +699,21 @@
         initTooltips();
     });
 
+    // Função para controlar as abas
+    function mostrarAba(aba) {
+        // Esconder todas as abas
+        $('.aba-conteudo').addClass('hidden');
+        
+        // Remover classe ativa de todos os botões
+        $('[id^="tab-"]').removeClass('bg-white text-scordon-600 shadow-sm').addClass('text-gray-500 hover:text-gray-700');
+        
+        // Mostrar aba selecionada
+        $('#conteudo-' + aba).removeClass('hidden');
+        
+        // Ativar botão da aba selecionada
+        $('#tab-' + aba).removeClass('text-gray-500 hover:text-gray-700').addClass('bg-white text-scordon-600 shadow-sm');
+    }
+
     // Função para exportar CSV customizada para esta página
     function exportarCSV(tabelaId, nomeArquivo) {
         const tabela = document.getElementById(tabelaId);
@@ -426,7 +721,7 @@
         
         const linhas = tabela.querySelectorAll('tr');
         let csvContent = "data:text/csv;charset=utf-8,";
-        csvContent += "Data,Hora,Empresa,Atendente,Cliente,Email,Nota,Comentario\n";
+        csvContent += "Data,Hora,Empresa,Atendente,Gerado Por,Cliente,Email,Nota,Comentario\n";
         
         // Extrair dados (pular cabeçalho)
         for (let i = 1; i < linhas.length; i++) {
@@ -437,19 +732,20 @@
                 const hora = dataHora[1] ? dataHora[1].trim() : '';
                 const empresa = celulas[1].textContent.trim();
                 const atendente = celulas[2].textContent.trim();
+                const geradoPor = celulas[3].textContent.trim();
                 
                 // Extrair dados do cliente
-                const clienteTexto = celulas[3].textContent.trim();
+                const clienteTexto = celulas[4].textContent.trim();
                 const nomeCliente = clienteTexto === 'Anônimo' ? '' : clienteTexto.split('\n')[0];
                 const emailCliente = clienteTexto.includes('@') ? clienteTexto.split('\n')[1] || '' : '';
                 
                 // Extrair nota (contar estrelas ativas)
-                const estrelas = celulas[4].querySelectorAll('.fas.fa-star');
+                const estrelas = celulas[5].querySelectorAll('.fas.fa-star');
                 const nota = estrelas.length;
                 
-                const comentario = celulas[5].textContent.trim().replace('Sem comentário', '');
+                const comentario = celulas[6].textContent.trim().replace('Sem comentário', '');
                 
-                const linha = [data, hora, empresa, atendente, nomeCliente, emailCliente, nota, comentario]
+                const linha = [data, hora, empresa, atendente, geradoPor, nomeCliente, emailCliente, nota, comentario]
                     .map(campo => `"${campo.replace(/"/g, '""')}"`)
                     .join(',');
                 
@@ -467,6 +763,46 @@
         document.body.removeChild(link);
         
         mostrarNotificacao('Relatório CSV exportado com sucesso!', 'sucesso');
+    }
+
+    // Função para exportar CSV da tabela de produtividade
+    function exportarCSVProdutividade(tabelaId, nomeArquivo) {
+        const tabela = document.getElementById(tabelaId);
+        if (!tabela) return;
+        
+        const linhas = tabela.querySelectorAll('tr');
+        let csvContent = "data:text/csv;charset=utf-8,";
+        csvContent += "Posicao,Usuario,Links Gerados,Avaliacoes Recebidas,Taxa de Conversao,Performance\n";
+        
+        // Extrair dados (pular cabeçalho)
+        for (let i = 1; i < linhas.length; i++) {
+            const celulas = linhas[i].querySelectorAll('td');
+            if (celulas.length > 0) {
+                const posicao = i;
+                const usuario = celulas[0].textContent.trim();
+                const linksGerados = celulas[1].textContent.trim();
+                const avaliacoesRecebidas = celulas[2].textContent.trim();
+                const taxaConversao = celulas[3].textContent.trim();
+                const performance = celulas[4].textContent.trim();
+                
+                const linha = [posicao, usuario, linksGerados, avaliacoesRecebidas, taxaConversao, performance]
+                    .map(campo => `"${campo.replace(/"/g, '""')}"`)
+                    .join(',');
+                
+                csvContent += linha + "\n";
+            }
+        }
+        
+        // Download
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", `${nomeArquivo}_${new Date().toISOString().split('T')[0]}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        mostrarNotificacao('Relatório de produtividade CSV exportado com sucesso!', 'sucesso');
     }
 
     // Função para inicializar busca de empresas
@@ -754,6 +1090,48 @@
             sugestoesDiv.hide();
         }
     }
+    </script>
+
+    <script>
+        // Função para exportar PDF de avaliações
+        function exportarPDFAvaliacoes() {
+            // Coletar parâmetros de filtro
+            const params = new URLSearchParams();
+            
+            const empresa = document.getElementById('nIdEmpresa').value;
+            const atendente = document.getElementById('nIdAtendente').value;
+            const dataInicio = document.getElementById('dDataInicio').value;
+            const dataFim = document.getElementById('dDataFim').value;
+            
+            if (empresa) params.append('nIdEmpresa', empresa);
+            if (atendente) params.append('nIdAtendente', atendente);
+            if (dataInicio) params.append('dDataInicio', dataInicio);
+            if (dataFim) params.append('dDataFim', dataFim);
+            
+            // Redirecionar para a rota de PDF
+            const url = '{{ route("admin.pdf.avaliacoes") }}' + (params.toString() ? '?' + params.toString() : '');
+            window.open(url, '_blank');
+        }
+
+        // Função para exportar PDF de produtividade
+        function exportarPDFProdutividade() {
+            // Coletar parâmetros de filtro
+            const params = new URLSearchParams();
+            
+            const empresa = document.getElementById('nIdEmpresa').value;
+            const atendente = document.getElementById('nIdAtendente').value;
+            const dataInicio = document.getElementById('dDataInicio').value;
+            const dataFim = document.getElementById('dDataFim').value;
+            
+            if (empresa) params.append('nIdEmpresa', empresa);
+            if (atendente) params.append('nIdAtendente', atendente);
+            if (dataInicio) params.append('dDataInicio', dataInicio);
+            if (dataFim) params.append('dDataFim', dataFim);
+            
+            // Redirecionar para a rota de PDF
+            const url = '{{ route("admin.pdf.produtividade") }}' + (params.toString() ? '?' + params.toString() : '');
+            window.open(url, '_blank');
+        }
     </script>
 </body>
 </html>

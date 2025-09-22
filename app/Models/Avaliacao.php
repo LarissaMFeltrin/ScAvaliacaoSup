@@ -15,14 +15,17 @@ class Avaliacao extends Model
         'aToken',
         'nIdEmpresa',
         'nIdAtendente',
+        'nIdUsuarioGerador',
         'aNomeCliente',
         'aEmailCliente',
         'nNota',
         'aComentario',
+        'dCriadoEm',
         'dAvaliadoEm'
     ];
 
     protected $casts = [
+        'dCriadoEm' => 'datetime',
         'dAvaliadoEm' => 'datetime',
     ];
 
@@ -33,6 +36,9 @@ class Avaliacao extends Model
         static::creating(function ($avaliacao) {
             if (empty($avaliacao->aToken)) {
                 $avaliacao->aToken = Str::random(32);
+            }
+            if (empty($avaliacao->dCriadoEm)) {
+                $avaliacao->dCriadoEm = now();
             }
         });
     }
@@ -47,9 +53,24 @@ class Avaliacao extends Model
         return $this->belongsTo(Usuario::class, 'nIdAtendente', 'ID');
     }
 
+    public function usuarioGerador(): BelongsTo
+    {
+        return $this->belongsTo(Usuario::class, 'nIdUsuarioGerador', 'ID');
+    }
+
     public function foiAvaliada(): bool
     {
         return !is_null($this->nNota) && !is_null($this->dAvaliadoEm);
+    }
+
+    public function foiGerada(): bool
+    {
+        return !is_null($this->dCriadoEm);
+    }
+
+    public function getTaxaConversaoAttribute(): float
+    {
+        return $this->foiAvaliada() ? 100.0 : 0.0;
     }
 
     public function getTextoNotaAttribute(): string
