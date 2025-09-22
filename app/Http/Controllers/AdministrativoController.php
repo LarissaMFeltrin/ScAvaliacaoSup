@@ -163,4 +163,46 @@ class AdministrativoController extends Controller
         
         return response()->json($atendentes);
     }
+
+    /**
+     * API para buscar empresas por nome
+     */
+    public function buscarEmpresas(Request $request)
+    {
+        $termo = $request->get('q', '');
+        $limit = $request->get('limit', 20);
+        
+        $query = Empresa::ativas();
+        
+        if (!empty($termo)) {
+            $query->where('aNome', 'LIKE', "%{$termo}%");
+        }
+        
+        $empresas = $query->orderBy('aNome')
+            ->limit($limit)
+            ->get(['ID', 'aNome']);
+        
+        return response()->json($empresas);
+    }
+
+    /**
+     * API para buscar atendentes por nome
+     */
+    public function buscarAtendentes(Request $request)
+    {
+        $termo = $request->get('q', '');
+        $limit = $request->get('limit', 20);
+        
+        $query = Usuario::ativos();
+        
+        if (!empty($termo)) {
+            $query->where('aNome', 'LIKE', "%{$termo}%");
+        }
+        
+        $atendentes = $query->orderBy('aNome')
+            ->limit($limit)
+            ->get(['ID', 'aNome']);
+        
+        return response()->json($atendentes);
+    }
 }
