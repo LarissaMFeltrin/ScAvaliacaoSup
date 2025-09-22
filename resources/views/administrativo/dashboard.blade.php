@@ -410,15 +410,16 @@
             
             // Preparar dados dinâmicos (apenas notas que existem)
             const todasAsNotas = [
-                { nota: 1, label: 'Muito Insatisfeito (1)', cor: '#dc3545' },
-                { nota: 2, label: 'Insatisfeito (2)', cor: '#fd7e14' },
-                { nota: 3, label: 'Neutro (3)', cor: '#FBBF24' },
-                { nota: 4, label: 'Satisfeito (4)', cor: '#10B981' },
-                { nota: 5, label: 'Muito Satisfeito (5)', cor: '#059669' }
+                { nota: 1, label: 'Muito Insatisfeito ', cor: '#dc3545' },
+                { nota: 2, label: 'Insatisfeito ', cor: '#fd7e14' },
+                { nota: 3, label: 'Neutro ', cor: '#FBBF24' },
+                { nota: 4, label: 'Satisfeito ', cor: '#10B981' },
+                { nota: 5, label: 'Muito Satisfeito ', cor: '#059669' }
             ];
             
-            // Filtrar apenas notas com dados
+            // Filtrar apenas notas que realmente têm dados (mais de 0 avaliações)
             const notasComDados = todasAsNotas.filter(item => (dadosNota[item.nota] || 0) > 0);
+            
             
             // Se não há dados, mostrar uma mensagem
             if (notasComDados.length === 0) {
@@ -434,13 +435,23 @@
                 return;
             }
             
-            new Chart(ctx, {
+            // Criar labels que mostram as quantidades
+            const labels = notasComDados.map(item => `${item.label}: ${dadosNota[item.nota]} avaliação(ões)`);
+            const data = notasComDados.map(item => dadosNota[item.nota]);
+            const cores = notasComDados.map(item => item.cor);
+            
+            
+            
+            
+            try {
+                // Criar gráfico diretamente com dados reais
+                const chart = new Chart(ctx, {
                 type: 'doughnut',
                 data: {
-                    labels: notasComDados.map(item => item.label),
+                        labels: labels,
                     datasets: [{
-                        data: notasComDados.map(item => dadosNota[item.nota]),
-                        backgroundColor: notasComDados.map(item => item.cor),
+                            data: data,
+                            backgroundColor: cores,
                         borderWidth: 3,
                         borderColor: '#fff'
                     }]
@@ -472,7 +483,13 @@
                         }
                     }
                 }
-            });
+                });
+                
+                
+            } catch (error) {
+                console.error('Erro ao criar gráfico:', error);
+                console.error('Stack trace:', error.stack);
+            }
         }
     });
 
