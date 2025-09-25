@@ -28,7 +28,7 @@ class CheckRole
             return $next($request);
         }
 
-        // Usuário não tem permissão
-        return redirect()->route('admin.index')->with('erro', 'Você não tem permissão para acessar esta página.');
+        // Usuário não tem permissão - redirecionar para página apropriada
+        return redirect()->route('admin.redirect')->with('erro', 'Você não tem permissão para acessar esta página.');
     }
 }

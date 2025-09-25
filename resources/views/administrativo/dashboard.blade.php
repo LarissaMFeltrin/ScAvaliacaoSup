@@ -97,13 +97,29 @@
             <div class="text-center mb-12">
                 <h1 class="text-4xl md:text-5xl font-bold text-gray-800 mb-4">
                     <i class="fas fa-chart-bar text-scordon-500 mr-3"></i>
-                    Dashboard de Avaliações
+                    @if(auth()->user()->isAtendente())
+                        Meu Dashboard - Suporte
+                    @elseif(auth()->user()->isVendedor())
+                        Meu Dashboard - Comercial
+                    @else
+                        Dashboard de Avaliações
+                    @endif
                 </h1>
-                <p class="text-xl text-gray-600 mb-6">Acompanhe o desempenho do seu atendimento</p>
-                <a href="{{ route('admin.relatorio') }}" class="btn-azul">
-                    <i class="fas fa-file-alt mr-2"></i>
-                    Ver Relatório Detalhado
-                </a>
+                <p class="text-xl text-gray-600 mb-6">
+                    @if(auth()->user()->isAtendente())
+                        Acompanhe suas avaliações de atendimento de suporte
+                    @elseif(auth()->user()->isVendedor())
+                        Acompanhe suas avaliações de atendimento comercial
+                    @else
+                        Acompanhe o desempenho geral do sistema
+                    @endif
+                </p>
+                @if(auth()->user()->hasAnyRole(['admin', 'suporte']))
+                    <a href="{{ route('admin.relatorio') }}" class="btn-azul">
+                        <i class="fas fa-file-alt mr-2"></i>
+                        Ver Relatório Detalhado
+                    </a>
+                @endif
             </div>
 
             <!-- Filtros -->
@@ -315,7 +331,7 @@
                                         <div class="text-right">
                                             <div class="flex space-x-1 mb-1">
                                                 @for($i = 1; $i <= 5; $i++)
-                                                    @if($i <= ($avaliacao->nNota ?? 0))
+                                                    @if($i <= ($avaliacao->nNotaAtendimento ?? 0))
                                                         <i class="fas fa-star text-scordon-500"></i>
                                                     @else
                                                         <i class="far fa-star text-gray-300"></i>
@@ -323,8 +339,8 @@
                                                 @endfor
                                             </div>
                                             <span class="text-xs px-2 py-1 rounded-full 
-                                                @if(($avaliacao->nNota ?? 0) >= 4) bg-green-100 text-green-800
-                                                @elseif(($avaliacao->nNota ?? 0) == 3) bg-yellow-100 text-yellow-800
+                                                @if(($avaliacao->nNotaAtendimento ?? 0) >= 4) bg-green-100 text-green-800
+                                                @elseif(($avaliacao->nNotaAtendimento ?? 0) == 3) bg-yellow-100 text-yellow-800
                                                 @else bg-red-100 text-red-800
                                                 @endif">
                                                 {{ $avaliacao->texto_nota ?? 'Não avaliado' }}

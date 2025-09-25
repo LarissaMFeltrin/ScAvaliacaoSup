@@ -94,7 +94,7 @@
                             <div class="flex items-center">
                                 <div class="rating-display flex space-x-1 mr-3">
                                     @for($i = 1; $i <= 5; $i++)
-                                        @if($i <= $avaliacao->nNota)
+                                        @if($i <= $avaliacao->nNotaAtendimento)
                                             <i class="fas fa-star text-scordon-500"></i>
                                         @else
                                             <i class="far fa-star text-gray-300"></i>

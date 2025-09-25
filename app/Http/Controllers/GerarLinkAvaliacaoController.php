@@ -43,6 +43,7 @@ class GerarLinkAvaliacaoController extends Controller
 
         // Criar nova avaliação
         $avaliacao = Avaliacao::create([
+            'aTipo' => 'suporte',
             'nIdEmpresa' => $request->nIdEmpresa,
             'nIdAtendente' => $request->nIdAtendente,
             'nIdUsuarioGerador' => auth()->id(),

@@ -23,7 +23,7 @@ class AdministrativoController extends Controller
 
         // Query base para avaliações completadas
         $queryAvaliacoes = Avaliacao::with(['empresa', 'atendente', 'usuarioGerador'])
-                                   ->whereNotNull('nNota');
+                                   ->whereNotNull('nNotaAtendimento');
 
         // Query base para todas as avaliações (geradas)
         $queryTodasAvaliacoes = Avaliacao::with(['empresa', 'atendente', 'usuarioGerador']);
@@ -65,18 +65,18 @@ class AdministrativoController extends Controller
         // Estatísticas
         $totalAvaliacoes = $queryAvaliacoes->count();
         $totalLinksGerados = $queryTodasAvaliacoes->count();
-        $notaMedia = $queryAvaliacoes->avg('nNota');
+        $notaMedia = $queryAvaliacoes->avg('nNotaAtendimento');
         
         // Calcular taxa de conversão
         $taxaConversao = $totalLinksGerados > 0 ? ($totalAvaliacoes / $totalLinksGerados) * 100 : 0;
         
         // Distribuição por nota
         $distribuicaoNotas = $queryAvaliacoes
-            ->select('nNota', DB::raw('count(*) as total'))
-            ->groupBy('nNota')
-            ->orderBy('nNota')
+            ->select('nNotaAtendimento', DB::raw('count(*) as total'))
+            ->groupBy('nNotaAtendimento')
+            ->orderBy('nNotaAtendimento')
             ->get()
-            ->pluck('total', 'nNota')
+            ->pluck('total', 'nNotaAtendimento')
             ->toArray();
 
         // Preencher notas que não foram avaliadas
@@ -89,7 +89,7 @@ class AdministrativoController extends Controller
 
         // Avaliações recentes - criar nova query para evitar conflitos
         $avaliacoesRecentes = Avaliacao::with(['empresa', 'atendente'])
-            ->whereNotNull('nNota')
+            ->whereNotNull('nNotaAtendimento')
             ->when($idEmpresa, function($query) use ($idEmpresa) {
                 return $query->where('nIdEmpresa', $idEmpresa);
             })
@@ -140,7 +140,7 @@ class AdministrativoController extends Controller
         $dataFim = $request->get('dDataFim');
 
         $queryAvaliacoes = Avaliacao::with(['empresa', 'atendente', 'usuarioGerador'])
-                                   ->whereNotNull('nNota');
+                                   ->whereNotNull('nNotaAtendimento');
 
         // Query para todas as avaliações (geradas)
         $queryTodasAvaliacoes = Avaliacao::with(['empresa', 'atendente', 'usuarioGerador']);
@@ -272,7 +272,7 @@ class AdministrativoController extends Controller
         $dataFim = $request->get('dDataFim');
 
         $queryAvaliacoes = Avaliacao::with(['empresa', 'atendente', 'usuarioGerador'])
-                                   ->whereNotNull('nNota');
+                                   ->whereNotNull('nNotaAtendimento');
 
         // Aplicar mesmos filtros para avaliações completadas
         if ($idEmpresa) {
@@ -295,7 +295,7 @@ class AdministrativoController extends Controller
 
         // Calcular estatísticas
         $totalAvaliacoes = $avaliacoes->count();
-        $notaMedia = $avaliacoes->avg('nNota');
+        $notaMedia = $avaliacoes->avg('nNotaAtendimento');
         
         // Dados para filtros
         $empresa = $idEmpresa ? Empresa::find($idEmpresa) : null;
@@ -356,7 +356,7 @@ class AdministrativoController extends Controller
 
         // Buscar avaliações completadas por usuário
         $avaliacoesCompletadas = Avaliacao::with(['usuarioGerador'])
-            ->whereNotNull('nNota')
+            ->whereNotNull('nNotaAtendimento')
             ->when($idEmpresa, function($query) use ($idEmpresa) {
                 return $query->where('nIdEmpresa', $idEmpresa);
             })

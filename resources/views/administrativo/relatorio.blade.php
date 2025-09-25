@@ -324,7 +324,7 @@
                                         <td class="px-6 py-4 text-center">
                                             <div class="flex justify-center space-x-1 mb-2">
                                                 @for($i = 1; $i <= 5; $i++)
-                                                    @if($i <= $avaliacao->nNota)
+                                                    @if($i <= $avaliacao->nNotaAtendimento)
                                                         <i class="fas fa-star text-scordon-500"></i>
                                                     @else
                                                         <i class="far fa-star text-gray-300"></i>
@@ -332,8 +332,8 @@
                                                 @endfor
                                             </div>
                                             <span class="inline-block px-3 py-1 rounded-full text-xs font-semibold
-                                                @if($avaliacao->nNota >= 4) bg-green-100 text-green-800
-                                                @elseif($avaliacao->nNota == 3) bg-yellow-100 text-yellow-800
+                                                @if($avaliacao->nNotaAtendimento >= 4) bg-green-100 text-green-800
+                                                @elseif($avaliacao->nNotaAtendimento == 3) bg-yellow-100 text-yellow-800
                                                 @else bg-red-100 text-red-800
                                                 @endif">
                                                 {{ $avaliacao->texto_nota }}
@@ -425,7 +425,7 @@
                         ->get();
 
                     $avaliacoesCompletadas = \App\Models\Avaliacao::with(['usuarioGerador'])
-                        ->whereNotNull('nNota')
+                        ->whereNotNull('nNotaAtendimento')
                         ->when($idEmpresa, function($query) use ($idEmpresa) {
                             return $query->where('nIdEmpresa', $idEmpresa);
                         })

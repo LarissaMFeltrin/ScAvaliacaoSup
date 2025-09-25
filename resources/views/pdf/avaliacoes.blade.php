@@ -234,8 +234,8 @@
                     <td>{{ $avaliacao->empresa->aNome ?? 'N/A' }}</td>
                     <td>{{ $avaliacao->atendente->aNome ?? 'N/A' }}</td>
                     <td>{{ $avaliacao->usuarioGerador->aNome ?? 'Sistema/Admin' }}</td>
-                    <td class="nota nota-{{ $avaliacao->nNota }}">
-                        {{ $avaliacao->nNota }}
+                    <td class="nota nota-{{ $avaliacao->nNotaAtendimento }}">
+                        {{ $avaliacao->nNotaAtendimento }}
                     </td>
                     <td style="max-width: 200px; word-wrap: break-word;">
                         {{ Str::limit($avaliacao->aComentario, 50) }}

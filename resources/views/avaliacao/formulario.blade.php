@@ -128,7 +128,7 @@
                             <span class="star" data-rating="5"><i class="fas fa-star"></i></span>
                         </div>
                         <div class="text-lg font-semibold" id="rating-text">Clique nas estrelas para avaliar</div>
-                        <input type="hidden" name="nNota" id="nota-input" value="{{ old('nNota') }}">
+                        <input type="hidden" name="nNotaAtendimento" id="nota-input" value="{{ old('nNotaAtendimento') }}">
                     </div>
 
                     <!-- Comentário -->
@@ -204,7 +204,7 @@ $(document).ready(function() {
     
     // O sistema de rating já é inicializado automaticamente pelo JS global
     // Apenas definir valor inicial se existir
-    const notaInicial = {{ old('nNota', 0) }};
+    const notaInicial = {{ old('nNotaAtendimento', 0) }};
     if (notaInicial > 0) {
         $('#nota-input').val(notaInicial);
         // Trigger do sistema global

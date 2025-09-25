@@ -83,6 +83,11 @@ class Usuario extends Authenticatable
         return $this->aRole === 'atendente';
     }
 
+    public function isVendedor(): bool
+    {
+        return $this->aRole === 'vendedor';
+    }
+
     public function hasRole(string $role): bool
     {
         return $this->aRole === $role;
@@ -105,6 +110,7 @@ class Usuario extends Authenticatable
             'admin' => 'Administrador',
             'suporte' => 'Suporte',
             'atendente' => 'Atendente',
+            'vendedor' => 'Vendedor',
             default => 'Usuário'
         };
     }
