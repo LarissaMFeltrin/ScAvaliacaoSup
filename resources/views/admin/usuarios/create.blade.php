@@ -218,6 +218,9 @@
                             <option value="atendente" {{ old('aRole') == 'atendente' ? 'selected' : '' }}>
                                 👤 Atendente - Gerar links
                             </option>
+                            <option value="vendedor" {{ old('aRole') == 'vendedor' ? 'selected' : '' }}>
+                                🤝 Vendedor - Gerar links comerciais
+                            </option>
                         </select>
                         @error('aRole')
                             <p class="text-red-500 text-sm mt-1">

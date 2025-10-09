@@ -54,9 +54,16 @@
                     <a href="{{ url('/') }}" class="hover:text-scordon-100 transition-colors">
                         <i class="fas fa-home mr-2"></i>Início
                     </a>
-                    <a href="{{ route('admin.index') }}" class="hover:text-scordon-100 transition-colors font-semibold">
-                        <i class="fas fa-link mr-2"></i>Gerar Links
-                    </a>
+                    @if(auth()->user()->hasAnyRole(['admin', 'suporte', 'atendente']))
+                        <a href="{{ route('admin.index') }}" class="hover:text-scordon-100 transition-colors font-semibold">
+                            <i class="fas fa-link mr-2"></i>Suporte
+                        </a>
+                    @endif
+                    @if(auth()->user()->hasAnyRole(['admin', 'vendedor']))
+                        <a href="{{ route('admin.gerar-link-comercial') }}" class="hover:text-scordon-100 transition-colors {{ auth()->user()->isVendedor() ? 'font-semibold' : '' }}">
+                            <i class="fas fa-handshake mr-2"></i>Comercial
+                        </a>
+                    @endif
                     @if(auth()->user()->hasAnyRole(['admin', 'suporte']))
                         <a href="{{ route('admin.dashboard') }}" class="hover:text-scordon-100 transition-colors">
                             <i class="fas fa-chart-bar mr-2"></i>Dashboard
@@ -96,9 +103,9 @@
             <div class="text-center mb-12">
                 <h1 class="text-4xl md:text-5xl font-bold text-gray-800 mb-4">
                     <i class="fas fa-link text-scordon-500 mr-3"></i>
-                    Gerar Link de Avaliação
+                    Gerar Link de Avaliação - Suporte
                 </h1>
-                <p class="text-xl text-gray-600">Crie links únicos para seus clientes avaliarem o atendimento</p>
+                <p class="text-xl text-gray-600">Crie links únicos para seus clientes avaliarem o atendimento de suporte</p>
             </div>
 
     <div class="grid lg:grid-cols-2 gap-8">
@@ -147,13 +154,23 @@
                         <i class="fas fa-user text-scordon-500 mr-2"></i>
                         Atendente *
                     </label>
-                    <select class="w-full form-select-scordon" id="nIdAtendente" name="nIdAtendente" required disabled>
+                    <select class="w-full form-select-scordon {{ !auth()->user()->isAdmin() ? 'bg-gray-100 cursor-not-allowed' : '' }}" 
+                            id="nIdAtendente" 
+                            name="nIdAtendente" 
+                            required 
+                            disabled
+                            @if(!auth()->user()->isAdmin()) readonly @endif>
                         <option value="">Primeiro selecione uma empresa...</option>
                     </select>
-                    @if(auth()->user()->hasAnyRole(['atendente', 'suporte', 'admin']))
+                    @if(auth()->user()->hasAnyRole(['atendente', 'suporte']))
                         <small class="text-gray-500 mt-1 block">
                             <i class="fas fa-info-circle mr-1"></i>
                             Seu nome será selecionado automaticamente
+                        </small>
+                    @elseif(auth()->user()->isAdmin())
+                        <small class="text-gray-500 mt-1 block">
+                            <i class="fas fa-user-cog mr-1"></i>
+                            Como admin, você pode selecionar qualquer atendente
                         </small>
                     @endif
                 </div>
@@ -545,13 +562,21 @@ $(document).ready(function() {
         $.get(`{{ url('admin/empresas') }}/${idEmpresa}/atendentes`, function(data) {
             let opcoes = '<option value="">Selecione um atendente...</option>';
             const usuarioLogadoId = {{ auth()->id() }};
+            const isAdmin = {{ auth()->user()->isAdmin() ? 'true' : 'false' }};
             
             data.forEach(function(atendente) {
                 const selected = (atendente.ID == usuarioLogadoId) ? 'selected' : '';
                 opcoes += `<option value="${atendente.ID}" ${selected}>${atendente.aNome}</option>`;
             });
             
-            $('#nIdAtendente').html(opcoes).prop('disabled', false);
+            $('#nIdAtendente').html(opcoes);
+            
+            // Para usuários não-admin, sempre selecionar o próprio nome e bloquear
+            if (!isAdmin) {
+                $('#nIdAtendente').prop('disabled', true).addClass('bg-gray-100 cursor-not-allowed');
+            } else {
+                $('#nIdAtendente').prop('disabled', false).removeClass('bg-gray-100 cursor-not-allowed');
+            }
             
             // Se usuário logado está na lista, habilitar botão automaticamente
             if (usuarioLogadoId && data.some(a => a.ID == usuarioLogadoId)) {

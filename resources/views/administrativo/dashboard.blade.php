@@ -97,13 +97,29 @@
             <div class="text-center mb-12">
                 <h1 class="text-4xl md:text-5xl font-bold text-gray-800 mb-4">
                     <i class="fas fa-chart-bar text-scordon-500 mr-3"></i>
-                    Dashboard de Avaliações
+                    @if(auth()->user()->isAtendente())
+                        Meu Dashboard - Suporte
+                    @elseif(auth()->user()->isVendedor())
+                        Meu Dashboard - Comercial
+                    @else
+                        Dashboard de Avaliações
+                    @endif
                 </h1>
-                <p class="text-xl text-gray-600 mb-6">Acompanhe o desempenho do seu atendimento</p>
-                <a href="{{ route('admin.relatorio') }}" class="btn-azul">
-                    <i class="fas fa-file-alt mr-2"></i>
-                    Ver Relatório Detalhado
-                </a>
+                <p class="text-xl text-gray-600 mb-6">
+                    @if(auth()->user()->isAtendente())
+                        Acompanhe suas avaliações de atendimento de suporte
+                    @elseif(auth()->user()->isVendedor())
+                        Acompanhe suas avaliações de atendimento comercial
+                    @else
+                        Acompanhe o desempenho geral do sistema
+                    @endif
+                </p>
+                @if(auth()->user()->hasAnyRole(['admin', 'suporte']))
+                    <a href="{{ route('admin.relatorio') }}" class="btn-azul">
+                        <i class="fas fa-file-alt mr-2"></i>
+                        Ver Relatório Detalhado
+                    </a>
+                @endif
             </div>
 
             <!-- Filtros -->
@@ -185,15 +201,15 @@
             </div>
 
             <!-- Cards de Estatísticas -->
-            <div class="grid md:grid-cols-4 gap-6 mb-12">
+            <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
                 <div class="bg-white rounded-2xl shadow-xl p-6 border-l-4 border-scordon-500">
                     <div class="flex items-center justify-between">
                         <div>
-                            <p class="text-sm font-semibold text-gray-600 uppercase tracking-wide">Total de Avaliações</p>
-                            <p class="text-3xl font-bold text-gray-800">{{ $totalAvaliacoes }}</p>
+                            <p class="text-sm font-semibold text-gray-600 uppercase tracking-wide">Links Gerados</p>
+                            <p class="text-3xl font-bold text-gray-800">{{ $totalLinksGerados }}</p>
                         </div>
                         <div class="bg-scordon-100 p-3 rounded-full">
-                            <i class="fas fa-star text-2xl text-scordon-600"></i>
+                            <i class="fas fa-link text-2xl text-scordon-600"></i>
                         </div>
                     </div>
                 </div>
@@ -201,11 +217,11 @@
                 <div class="bg-white rounded-2xl shadow-xl p-6 border-l-4 border-green-500">
                     <div class="flex items-center justify-between">
                         <div>
-                            <p class="text-sm font-semibold text-gray-600 uppercase tracking-wide">Nota Média</p>
-                            <p class="text-3xl font-bold text-gray-800">{{ number_format($notaMedia, 1) }}</p>
+                            <p class="text-sm font-semibold text-gray-600 uppercase tracking-wide">Avaliações Recebidas</p>
+                            <p class="text-3xl font-bold text-gray-800">{{ $totalAvaliacoes }}</p>
                         </div>
                         <div class="bg-green-100 p-3 rounded-full">
-                            <i class="fas fa-chart-line text-2xl text-green-600"></i>
+                            <i class="fas fa-star text-2xl text-green-600"></i>
                         </div>
                     </div>
                 </div>
@@ -213,11 +229,11 @@
                 <div class="bg-white rounded-2xl shadow-xl p-6 border-l-4 border-blue-500">
                     <div class="flex items-center justify-between">
                         <div>
-                            <p class="text-sm font-semibold text-gray-600 uppercase tracking-wide">Muito Satisfeitos</p>
-                            <p class="text-3xl font-bold text-gray-800">{{ $distribuicaoNotas[5] ?? 0 }}</p>
+                            <p class="text-sm font-semibold text-gray-600 uppercase tracking-wide">Taxa de Conversão</p>
+                            <p class="text-3xl font-bold text-gray-800">{{ number_format($taxaConversao, 1) }}%</p>
                         </div>
                         <div class="bg-blue-100 p-3 rounded-full">
-                            <i class="fas fa-thumbs-up text-2xl text-blue-600"></i>
+                            <i class="fas fa-percentage text-2xl text-blue-600"></i>
                         </div>
                     </div>
                 </div>
@@ -225,13 +241,50 @@
                 <div class="bg-white rounded-2xl shadow-xl p-6 border-l-4 border-purple-500">
                     <div class="flex items-center justify-between">
                         <div>
-                            <p class="text-sm font-semibold text-gray-600 uppercase tracking-wide">Taxa de Satisfação</p>
-                            <p class="text-3xl font-bold text-gray-800">
-                                {{ $totalAvaliacoes > 0 ? number_format((($distribuicaoNotas[4] ?? 0) + ($distribuicaoNotas[5] ?? 0)) / $totalAvaliacoes * 100, 1) : 0 }}%
-                            </p>
+                            <p class="text-sm font-semibold text-gray-600 uppercase tracking-wide">Nota Média</p>
+                            <p class="text-3xl font-bold text-gray-800">{{ number_format($notaMedia, 1) }}</p>
                         </div>
                         <div class="bg-purple-100 p-3 rounded-full">
-                            <i class="fas fa-heart text-2xl text-purple-600"></i>
+                            <i class="fas fa-chart-line text-2xl text-purple-600"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Cards de Satisfação -->
+            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
+                <div class="bg-white rounded-2xl shadow-xl p-6 border-l-4 border-emerald-500">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-semibold text-gray-600 uppercase tracking-wide">Muito Satisfeitos</p>
+                            <p class="text-3xl font-bold text-gray-800">{{ $distribuicaoNotas[5] ?? 0 }}</p>
+                        </div>
+                        <div class="bg-emerald-100 p-3 rounded-full">
+                            <i class="fas fa-thumbs-up text-2xl text-emerald-600"></i>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="bg-white rounded-2xl shadow-xl p-6 border-l-4 border-yellow-500">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-semibold text-gray-600 uppercase tracking-wide">Satisfeitos</p>
+                            <p class="text-3xl font-bold text-gray-800">{{ $distribuicaoNotas[4] ?? 0 }}</p>
+                        </div>
+                        <div class="bg-yellow-100 p-3 rounded-full">
+                            <i class="fas fa-smile text-2xl text-yellow-600"></i>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="bg-white rounded-2xl shadow-xl p-6 border-l-4 border-red-500">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-semibold text-gray-600 uppercase tracking-wide">Insatisfeitos</p>
+                            <p class="text-3xl font-bold text-gray-800">{{ ($distribuicaoNotas[1] ?? 0) + ($distribuicaoNotas[2] ?? 0) }}</p>
+                        </div>
+                        <div class="bg-red-100 p-3 rounded-full">
+                            <i class="fas fa-frown text-2xl text-red-600"></i>
                         </div>
                     </div>
                 </div>
@@ -278,7 +331,7 @@
                                         <div class="text-right">
                                             <div class="flex space-x-1 mb-1">
                                                 @for($i = 1; $i <= 5; $i++)
-                                                    @if($i <= ($avaliacao->nNota ?? 0))
+                                                    @if($i <= ($avaliacao->nNotaAtendimento ?? 0))
                                                         <i class="fas fa-star text-scordon-500"></i>
                                                     @else
                                                         <i class="far fa-star text-gray-300"></i>
@@ -286,8 +339,8 @@
                                                 @endfor
                                             </div>
                                             <span class="text-xs px-2 py-1 rounded-full 
-                                                @if(($avaliacao->nNota ?? 0) >= 4) bg-green-100 text-green-800
-                                                @elseif(($avaliacao->nNota ?? 0) == 3) bg-yellow-100 text-yellow-800
+                                                @if(($avaliacao->nNotaAtendimento ?? 0) >= 4) bg-green-100 text-green-800
+                                                @elseif(($avaliacao->nNotaAtendimento ?? 0) == 3) bg-yellow-100 text-yellow-800
                                                 @else bg-red-100 text-red-800
                                                 @endif">
                                                 {{ $avaliacao->texto_nota ?? 'Não avaliado' }}
@@ -410,15 +463,16 @@
             
             // Preparar dados dinâmicos (apenas notas que existem)
             const todasAsNotas = [
-                { nota: 1, label: 'Muito Insatisfeito (1)', cor: '#dc3545' },
-                { nota: 2, label: 'Insatisfeito (2)', cor: '#fd7e14' },
-                { nota: 3, label: 'Neutro (3)', cor: '#FBBF24' },
-                { nota: 4, label: 'Satisfeito (4)', cor: '#10B981' },
-                { nota: 5, label: 'Muito Satisfeito (5)', cor: '#059669' }
+                { nota: 1, label: 'Muito Insatisfeito ', cor: '#dc3545' },
+                { nota: 2, label: 'Insatisfeito ', cor: '#fd7e14' },
+                { nota: 3, label: 'Neutro ', cor: '#FBBF24' },
+                { nota: 4, label: 'Satisfeito ', cor: '#10B981' },
+                { nota: 5, label: 'Muito Satisfeito ', cor: '#059669' }
             ];
             
-            // Filtrar apenas notas com dados
+            // Filtrar apenas notas que realmente têm dados (mais de 0 avaliações)
             const notasComDados = todasAsNotas.filter(item => (dadosNota[item.nota] || 0) > 0);
+            
             
             // Se não há dados, mostrar uma mensagem
             if (notasComDados.length === 0) {
@@ -434,13 +488,23 @@
                 return;
             }
             
-            new Chart(ctx, {
+            // Criar labels que mostram as quantidades
+            const labels = notasComDados.map(item => `${item.label}: ${dadosNota[item.nota]} avaliação(ões)`);
+            const data = notasComDados.map(item => dadosNota[item.nota]);
+            const cores = notasComDados.map(item => item.cor);
+            
+            
+            
+            
+            try {
+                // Criar gráfico diretamente com dados reais
+                const chart = new Chart(ctx, {
                 type: 'doughnut',
                 data: {
-                    labels: notasComDados.map(item => item.label),
+                        labels: labels,
                     datasets: [{
-                        data: notasComDados.map(item => dadosNota[item.nota]),
-                        backgroundColor: notasComDados.map(item => item.cor),
+                            data: data,
+                            backgroundColor: cores,
                         borderWidth: 3,
                         borderColor: '#fff'
                     }]
@@ -472,7 +536,13 @@
                         }
                     }
                 }
-            });
+                });
+                
+                
+            } catch (error) {
+                console.error('Erro ao criar gráfico:', error);
+                console.error('Stack trace:', error.stack);
+            }
         }
     });
 

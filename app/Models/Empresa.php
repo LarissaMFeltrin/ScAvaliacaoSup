@@ -22,11 +22,19 @@ class Empresa extends Model
         'nStatus' => 'integer',
     ];
 
-    // Empresas não têm atendentes específicos - atendentes são da SCORDON
-
     public function avaliacoes(): HasMany
     {
         return $this->hasMany(Avaliacao::class, 'nIdEmpresa', 'ID');
+    }
+
+    public function avaliacoesSuporte(): HasMany
+    {
+        return $this->avaliacoes()->suporte();
+    }
+
+    public function avaliacoesComerciais(): HasMany
+    {
+        return $this->avaliacoes()->comercial();
     }
 
     public function isAtiva(): bool

@@ -7,6 +7,7 @@ use App\Models\Usuario;
 use App\Models\Avaliacao;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class AdministrativoController extends Controller
 {
@@ -20,11 +21,14 @@ class AdministrativoController extends Controller
         $dataInicio = $request->get('dDataInicio');
         $dataFim = $request->get('dDataFim');
 
-        // Query base
-        $queryAvaliacoes = Avaliacao::with(['empresa', 'atendente'])
-                                   ->whereNotNull('nNota');
+        // Query base para avaliações completadas
+        $queryAvaliacoes = Avaliacao::with(['empresa', 'atendente', 'usuarioGerador'])
+                                   ->whereNotNull('nNotaAtendimento');
 
-        // Filtros
+        // Query base para todas as avaliações (geradas)
+        $queryTodasAvaliacoes = Avaliacao::with(['empresa', 'atendente', 'usuarioGerador']);
+
+        // Aplicar filtros para avaliações completadas
         if ($idEmpresa) {
             $queryAvaliacoes->where('nIdEmpresa', $idEmpresa);
         }
@@ -41,17 +45,38 @@ class AdministrativoController extends Controller
             $queryAvaliacoes->whereDate('dAvaliadoEm', '<=', $dataFim);
         }
 
+        // Aplicar filtros para todas as avaliações (geradas)
+        if ($idEmpresa) {
+            $queryTodasAvaliacoes->where('nIdEmpresa', $idEmpresa);
+        }
+        
+        if ($idAtendente) {
+            $queryTodasAvaliacoes->where('nIdAtendente', $idAtendente);
+        }
+        
+        if ($dataInicio) {
+            $queryTodasAvaliacoes->whereDate('dCriadoEm', '>=', $dataInicio);
+        }
+        
+        if ($dataFim) {
+            $queryTodasAvaliacoes->whereDate('dCriadoEm', '<=', $dataFim);
+        }
+
         // Estatísticas
         $totalAvaliacoes = $queryAvaliacoes->count();
-        $notaMedia = $queryAvaliacoes->avg('nNota');
+        $totalLinksGerados = $queryTodasAvaliacoes->count();
+        $notaMedia = $queryAvaliacoes->avg('nNotaAtendimento');
+        
+        // Calcular taxa de conversão
+        $taxaConversao = $totalLinksGerados > 0 ? ($totalAvaliacoes / $totalLinksGerados) * 100 : 0;
         
         // Distribuição por nota
         $distribuicaoNotas = $queryAvaliacoes
-            ->select('nNota', DB::raw('count(*) as total'))
-            ->groupBy('nNota')
-            ->orderBy('nNota')
+            ->select('nNotaAtendimento', DB::raw('count(*) as total'))
+            ->groupBy('nNotaAtendimento')
+            ->orderBy('nNotaAtendimento')
             ->get()
-            ->pluck('total', 'nNota')
+            ->pluck('total', 'nNotaAtendimento')
             ->toArray();
 
         // Preencher notas que não foram avaliadas
@@ -64,7 +89,7 @@ class AdministrativoController extends Controller
 
         // Avaliações recentes - criar nova query para evitar conflitos
         $avaliacoesRecentes = Avaliacao::with(['empresa', 'atendente'])
-            ->whereNotNull('nNota')
+            ->whereNotNull('nNotaAtendimento')
             ->when($idEmpresa, function($query) use ($idEmpresa) {
                 return $query->where('nIdEmpresa', $idEmpresa);
             })
@@ -90,6 +115,8 @@ class AdministrativoController extends Controller
 
         return view('administrativo.dashboard', compact(
             'totalAvaliacoes',
+            'totalLinksGerados',
+            'taxaConversao',
             'notaMedia',
             'distribuicaoNotas',
             'avaliacoesRecentes',
@@ -112,10 +139,13 @@ class AdministrativoController extends Controller
         $dataInicio = $request->get('dDataInicio');
         $dataFim = $request->get('dDataFim');
 
-        $queryAvaliacoes = Avaliacao::with(['empresa', 'atendente'])
-                                   ->whereNotNull('nNota');
+        $queryAvaliacoes = Avaliacao::with(['empresa', 'atendente', 'usuarioGerador'])
+                                   ->whereNotNull('nNotaAtendimento');
 
-        // Aplicar mesmos filtros
+        // Query para todas as avaliações (geradas)
+        $queryTodasAvaliacoes = Avaliacao::with(['empresa', 'atendente', 'usuarioGerador']);
+
+        // Aplicar mesmos filtros para avaliações completadas
         if ($idEmpresa) {
             $queryAvaliacoes->where('nIdEmpresa', $idEmpresa);
         }
@@ -132,9 +162,31 @@ class AdministrativoController extends Controller
             $queryAvaliacoes->whereDate('dAvaliadoEm', '<=', $dataFim);
         }
 
+        // Aplicar mesmos filtros para todas as avaliações (geradas)
+        if ($idEmpresa) {
+            $queryTodasAvaliacoes->where('nIdEmpresa', $idEmpresa);
+        }
+        
+        if ($idAtendente) {
+            $queryTodasAvaliacoes->where('nIdAtendente', $idAtendente);
+        }
+        
+        if ($dataInicio) {
+            $queryTodasAvaliacoes->whereDate('dCriadoEm', '>=', $dataInicio);
+        }
+        
+        if ($dataFim) {
+            $queryTodasAvaliacoes->whereDate('dCriadoEm', '<=', $dataFim);
+        }
+
         $avaliacoes = $queryAvaliacoes
             ->orderBy('dAvaliadoEm', 'desc')
             ->paginate(20);
+
+        // Calcular estatísticas para o relatório
+        $totalAvaliacoes = $queryAvaliacoes->count();
+        $totalLinksGerados = $queryTodasAvaliacoes->count();
+        $taxaConversao = $totalLinksGerados > 0 ? ($totalAvaliacoes / $totalLinksGerados) * 100 : 0;
 
         $empresas = Empresa::ativas()->get(['ID', 'aNome']);
         $atendentes = [];
@@ -144,6 +196,9 @@ class AdministrativoController extends Controller
 
         return view('administrativo.relatorio', compact(
             'avaliacoes',
+            'totalAvaliacoes',
+            'totalLinksGerados',
+            'taxaConversao',
             'empresas',
             'atendentes',
             'idEmpresa',
@@ -205,4 +260,167 @@ class AdministrativoController extends Controller
         
         return response()->json($atendentes);
     }
+
+    /**
+     * Gerar PDF de avaliações
+     */
+    public function pdfAvaliacoes(Request $request)
+    {
+        $idEmpresa = $request->get('nIdEmpresa');
+        $idAtendente = $request->get('nIdAtendente');
+        $dataInicio = $request->get('dDataInicio');
+        $dataFim = $request->get('dDataFim');
+
+        $queryAvaliacoes = Avaliacao::with(['empresa', 'atendente', 'usuarioGerador'])
+                                   ->whereNotNull('nNotaAtendimento');
+
+        // Aplicar mesmos filtros para avaliações completadas
+        if ($idEmpresa) {
+            $queryAvaliacoes->where('nIdEmpresa', $idEmpresa);
+        }
+        
+        if ($idAtendente) {
+            $queryAvaliacoes->where('nIdAtendente', $idAtendente);
+        }
+        
+        if ($dataInicio) {
+            $queryAvaliacoes->whereDate('dAvaliadoEm', '>=', $dataInicio);
+        }
+        
+        if ($dataFim) {
+            $queryAvaliacoes->whereDate('dAvaliadoEm', '<=', $dataFim);
+        }
+
+        $avaliacoes = $queryAvaliacoes->orderBy('dAvaliadoEm', 'desc')->get();
+
+        // Calcular estatísticas
+        $totalAvaliacoes = $avaliacoes->count();
+        $notaMedia = $avaliacoes->avg('nNotaAtendimento');
+        
+        // Dados para filtros
+        $empresa = $idEmpresa ? Empresa::find($idEmpresa) : null;
+        $atendente = $idAtendente ? Usuario::find($idAtendente) : null;
+
+        $pdf = Pdf::loadView('pdf.avaliacoes', compact(
+            'avaliacoes',
+            'totalAvaliacoes',
+            'notaMedia',
+            'empresa',
+            'atendente',
+            'dataInicio',
+            'dataFim'
+        ));
+
+        $pdf->setPaper('A4', 'landscape');
+        
+        $nomeArquivo = 'relatorio_avaliacoes_' . date('Y-m-d_H-i-s') . '.pdf';
+        
+        return $pdf->download($nomeArquivo);
+    }
+
+    /**
+     * Gerar PDF de produtividade
+     */
+    public function pdfProdutividade(Request $request)
+    {
+        $idEmpresa = $request->get('nIdEmpresa');
+        $idAtendente = $request->get('nIdAtendente');
+        $dataInicio = $request->get('dDataInicio');
+        $dataFim = $request->get('dDataFim');
+
+        // Query base para todas as avaliações
+        $queryTodasAvaliacoes = Avaliacao::with(['empresa', 'atendente', 'usuarioGerador']);
+
+        // Aplicar filtros
+        if ($idEmpresa) {
+            $queryTodasAvaliacoes->where('nIdEmpresa', $idEmpresa);
+        }
+        
+        if ($idAtendente) {
+            $queryTodasAvaliacoes->where('nIdAtendente', $idAtendente);
+        }
+        
+        if ($dataInicio) {
+            $queryTodasAvaliacoes->whereDate('dCriadoEm', '>=', $dataInicio);
+        }
+        
+        if ($dataFim) {
+            $queryTodasAvaliacoes->whereDate('dCriadoEm', '<=', $dataFim);
+        }
+
+        // Buscar produtividade por usuário
+        $produtividadeUsuarios = $queryTodasAvaliacoes
+            ->select('nIdUsuarioGerador', DB::raw('count(*) as total_links_gerados'))
+            ->groupBy('nIdUsuarioGerador')
+            ->get();
+
+        // Buscar avaliações completadas por usuário
+        $avaliacoesCompletadas = Avaliacao::with(['usuarioGerador'])
+            ->whereNotNull('nNotaAtendimento')
+            ->when($idEmpresa, function($query) use ($idEmpresa) {
+                return $query->where('nIdEmpresa', $idEmpresa);
+            })
+            ->when($idAtendente, function($query) use ($idAtendente) {
+                return $query->where('nIdAtendente', $idAtendente);
+            })
+            ->when($dataInicio, function($query) use ($dataInicio) {
+                return $query->whereDate('dAvaliadoEm', '>=', $dataInicio);
+            })
+            ->when($dataFim, function($query) use ($dataFim) {
+                return $query->whereDate('dAvaliadoEm', '<=', $dataFim);
+            })
+            ->select('nIdUsuarioGerador', DB::raw('count(*) as total_avaliacoes'))
+            ->groupBy('nIdUsuarioGerador')
+            ->get()
+            ->keyBy('nIdUsuarioGerador');
+
+        // Combinar dados
+        $relatorioProdutividade = [];
+        foreach ($produtividadeUsuarios as $item) {
+            $usuario = Usuario::find($item->nIdUsuarioGerador);
+            $avaliacoes = $avaliacoesCompletadas->get($item->nIdUsuarioGerador);
+            
+            // Se não encontrar o usuário, usar um nome padrão baseado no ID
+            $nomeUsuario = 'Usuário não encontrado';
+            if ($usuario) {
+                $nomeUsuario = $usuario->aNome;
+            } elseif ($item->nIdUsuarioGerador == 1) {
+                $nomeUsuario = 'Sistema/Admin';
+            } else {
+                $nomeUsuario = 'Usuário ID: ' . $item->nIdUsuarioGerador;
+            }
+            
+            $relatorioProdutividade[] = [
+                'usuario' => $nomeUsuario,
+                'total_links_gerados' => $item->total_links_gerados,
+                'total_avaliacoes' => $avaliacoes ? $avaliacoes->total_avaliacoes : 0,
+                'taxa_conversao' => $item->total_links_gerados > 0 ? 
+                    round(($avaliacoes ? $avaliacoes->total_avaliacoes : 0) / $item->total_links_gerados * 100, 1) : 0
+            ];
+        }
+
+        // Ordenar por total de links gerados
+        usort($relatorioProdutividade, function($a, $b) {
+            return $b['total_links_gerados'] <=> $a['total_links_gerados'];
+        });
+
+        // Dados para filtros
+        $empresa = $idEmpresa ? Empresa::find($idEmpresa) : null;
+        $atendente = $idAtendente ? Usuario::find($idAtendente) : null;
+
+        $pdf = Pdf::loadView('pdf.produtividade', compact(
+            'relatorioProdutividade',
+            'empresa',
+            'atendente',
+            'dataInicio',
+            'dataFim'
+        ));
+
+        $pdf->setPaper('A4', 'landscape');
+        
+        $nomeArquivo = 'relatorio_produtividade_' . date('Y-m-d_H-i-s') . '.pdf';
+        
+        return $pdf->download($nomeArquivo);
+    }
+
 }

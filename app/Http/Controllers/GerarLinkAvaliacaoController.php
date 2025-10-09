@@ -43,8 +43,11 @@ class GerarLinkAvaliacaoController extends Controller
 
         // Criar nova avaliação
         $avaliacao = Avaliacao::create([
+            'aTipo' => 'suporte',
             'nIdEmpresa' => $request->nIdEmpresa,
-            'nIdAtendente' => $request->nIdAtendente
+            'nIdAtendente' => $request->nIdAtendente,
+            'nIdUsuarioGerador' => auth()->id(),
+            'dCriadoEm' => now()
         ]);
 
         $link = url("/avaliacao/{$avaliacao->aToken}");
